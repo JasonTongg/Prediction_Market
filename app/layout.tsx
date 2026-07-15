@@ -21,9 +21,9 @@ export const metadata: Metadata = {
   title: "Verdict",
   description: "On-chain prediction markets on Solana",
   icons: {
-    icon: "/icon.svg",
-    shortcut: "/icon.svg",
-    apple: "/icon.svg",
+    icon: "/icon.png",
+    shortcut: "/icon.png",
+    apple: "/icon.png",
   },
 };
 
