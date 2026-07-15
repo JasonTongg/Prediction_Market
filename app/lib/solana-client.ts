@@ -3,12 +3,7 @@ import { rpc, rpcAirdrop } from "@solana/kit-plugin-rpc";
 
 export type ClusterMoniker = "devnet" | "testnet" | "mainnet" | "localnet";
 
-export const CLUSTERS: ClusterMoniker[] = [
-  "devnet",
-  "testnet",
-  "mainnet",
-  "localnet",
-];
+export const CLUSTERS: ClusterMoniker[] = ["devnet"];
 
 const CLUSTER_URLS: Record<ClusterMoniker, string> = {
   devnet: "https://api.devnet.solana.com",

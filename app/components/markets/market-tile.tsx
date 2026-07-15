@@ -46,14 +46,7 @@ export function MarketTile({
   return (
     <Link
       href={`/market/${address}`}
-      className="hover-card flex animate-[vfade_0.3s_ease_both] flex-col gap-3.5 rounded-[22px] border p-5 pb-[18px] text-left backdrop-blur-2xl"
-      style={{
-        background:
-          "linear-gradient(157deg,rgba(255,255,255,0.88) 0%,rgba(255,255,255,0.58) 100%)",
-        borderColor: "rgba(255,255,255,0.8)",
-        boxShadow:
-          "0 20px 48px -30px rgba(66,56,120,0.4), inset 0 1px 0 rgba(255,255,255,0.9)",
-      }}
+      className="hover-card flex animate-[vfade_0.3s_ease] flex-col gap-3.5 rounded-[22px] border p-5 pb-[18px] text-left backdrop-blur-2xl [background:linear-gradient(157deg,rgba(255,255,255,0.88)_0%,rgba(255,255,255,0.58)_100%)] [border-color:rgba(255,255,255,0.8)] [box-shadow:0_20px_48px_-30px_rgba(66,56,120,0.4),inset_0_1px_0_rgba(255,255,255,0.9)]"
     >
       <div className="flex items-center justify-between gap-2.5">
         <StatusBadge status={status} outcome={outcome} />

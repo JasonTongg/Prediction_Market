@@ -15,7 +15,10 @@ export function Header() {
         borderBottomColor: "rgba(255,255,255,0.55)",
       }}
     >
-      <Link href="/" className="flex items-center gap-[11px] bg-transparent p-0">
+      <Link
+        href="/"
+        className="flex items-center gap-[11px] bg-transparent p-0 hover:no-underline"
+      >
         <span
           className="flex items-center justify-center rounded-[7px]"
           style={{
