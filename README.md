@@ -1,184 +1,134 @@
-# prediction-market
+# Verdict — On-Chain Prediction Markets on Solana
 
-Next.js starter with Tailwind CSS, `@solana/kit`, and an Anchor prediction market program example.
+A fully on-chain, binary (YES/NO) prediction market built with **Anchor** on Solana. Anyone can open a market, bet SOL on an outcome, and claim a proportional share of the losing pool once it resolves — all state lives in Program Derived Addresses (PDAs), with no backend, no oracle, and no off-chain indexer.
 
-## Getting Started
+- **Live demo:** [https://verdict-sol.vercel.app/](https://verdict-sol.vercel.app/)
+- This repository contains **both** the Anchor smart contract and the Next.js frontend — no separate repo needed.
 
-```shell
-npx -y create-solana-dapp@latest -t solana-foundation/templates/kit/prediction-market
-```
+## Motivation & Overview
 
-```shell
-npm install
-npm run setup   # Builds the Anchor program and generates the TypeScript client
-npm run dev
-```
+Prediction markets need two things to be trustworthy: transparent, tamper-proof resolution, and a payout mechanism nobody can quietly rig. Building directly on Solana with Anchor gets both for free — every market, bet, resolution, and claim is a signed on-chain instruction against a PDA, readable and verifiable by anyone via `getProgramAccounts`, with sub-cent fees and sub-second finality.
 
-Open [http://localhost:3000](http://localhost:3000), connect your wallet, and interact with the prediction market.
+This repo demonstrates the full lifecycle of such a market:
 
-## What's Included
+- Creating a market with a question and a resolution deadline
+- Betting SOL on YES or NO, tracked per-wallet in its own PDA
+- Resolving the outcome (creator-gated, deadline-gated, one-shot)
+- Claiming winnings computed directly from the losing pool
 
-- **Wallet connection** via wallet-standard with auto-discovery and dropdown UI
-- **Cluster switching** — devnet, testnet, mainnet, and localnet from the header
-- **Airdrop** button (devnet/testnet/localnet)
-- **Prediction market program** — browse all on-chain markets, create YES/NO markets, bet SOL, resolve, and claim winnings via PDAs
-- **Toast notifications** with explorer links for every transaction
-- **Error handling** — human-readable messages for common Solana and program errors
-- **Codama-generated client** — type-safe program interactions using `@solana/kit`
-- **Tailwind CSS v4** with light/dark mode toggle
+## Key Concepts
 
-## Stack
+### Prediction Market
 
-| Layer          | Technology                       |
-| -------------- | -------------------------------- |
-| Frontend       | Next.js 16, React 19, TypeScript |
-| Styling        | Tailwind CSS v4                  |
-| Solana Client  | `@solana/kit`, wallet-standard   |
-| Program Client | Codama-generated, `@solana/kit`  |
-| Program        | Anchor (Rust)                    |
-
-## Project Structure
+A binary market pays out based on which side — YES or NO — collects more informed money, not a coin flip. Losers' stakes are redistributed to winners in proportion to their bet:
 
 ```
-├── app/
-│   ├── components/
-│   │   ├── header.tsx           # Shared nav: brand, New Market, theme/cluster/wallet
-│   │   ├── cluster-context.tsx  # Cluster state (React context + localStorage)
-│   │   ├── cluster-select.tsx   # Cluster switcher dropdown
-│   │   ├── grid-background.tsx  # Solana-branded decorative grid
-│   │   ├── providers.tsx        # Wallet + theme providers
-│   │   ├── theme-toggle.tsx     # Light/dark mode toggle
-│   │   ├── wallet-button.tsx    # Wallet connect/disconnect dropdown
-│   │   └── markets/             # Prediction market UI (list, detail, create)
-│   │       ├── status-badge.tsx        # Open / Awaiting / Resolved pill
-│   │       ├── odds-bar.tsx            # YES/NO percentage bar
-│   │       ├── odds-panel.tsx          # Large odds hero (detail page)
-│   │       ├── market-tile.tsx         # Market list grid card
-│   │       ├── resolved-banner.tsx     # Final outcome banner
-│   │       ├── position-panel.tsx      # "Your position" summary
-│   │       ├── bet-panel.tsx           # Bet form (place_bet)
-│   │       ├── connect-to-bet-panel.tsx
-│   │       ├── resolve-panel.tsx       # Creator resolve UI (resolve_market)
-│   │       ├── claim-panel.tsx         # Claim/claimed/lost states (claim_winnings)
-│   │       └── create-market-form.tsx  # Create market UI (create_market)
-│   ├── generated/prediction_market/  # Codama-generated program client
-│   ├── lib/
-│   │   ├── wallet/             # Wallet-standard connection layer
-│   │   │   ├── types.ts        # Wallet types
-│   │   │   ├── standard.ts     # Wallet discovery + session creation
-│   │   │   ├── signer.ts       # WalletSession → TransactionSigner
-│   │   │   └── context.tsx     # WalletProvider + useWallet() hook
-│   │   ├── hooks/
-│   │   │   ├── use-balance.ts        # SWR-based balance fetching
-│   │   │   ├── use-markets.ts        # getProgramAccounts market discovery (list page)
-│   │   │   ├── use-market.ts         # SWR-based single Market account fetching
-│   │   │   ├── use-user-position.ts  # SWR-based UserPosition account fetching
-│   │   │   ├── use-now.ts            # Ticking clock for countdowns
-│   │   │   └── use-send-transaction.ts  # Transaction send with loading state
-│   │   ├── market-view.ts      # Status/odds/color/countdown derivation helpers
-│   │   ├── cluster.ts          # Cluster endpoints + RPC factory
-│   │   ├── lamports.ts         # SOL/lamports conversion
-│   │   ├── send-transaction.ts # Transaction build + sign + send pipeline
-│   │   ├── errors.ts           # Transaction error parsing
-│   │   └── explorer.ts         # Explorer URL builder + address helpers
-│   ├── page.tsx                 # Market list (home)
-│   ├── create/page.tsx          # Create market
-│   └── market/[address]/page.tsx  # Market detail (bet/resolve/claim)
-├── anchor/                     # Anchor workspace
-│   └── programs/prediction_market/  # Prediction market program (Rust)
-└── codama.json                 # Codama client generation config
+winnings = your_bet + (your_bet / winning_pool) × losing_pool
 ```
 
-## Local Development
+No house edge, no external price feed — the payout is entirely a function of the two pools recorded on-chain.
 
-To test against a local validator instead of devnet:
+### Program Derived Addresses (PDAs)
 
-1. **Start a local validator**
+There is no database. Every piece of state is a PDA, deterministically derived and owned by the program:
 
-   ```bash
-   solana-test-validator
-   ```
+- **Market** — `["market", creator, market_id]` — question, resolution deadline, YES/NO pool totals, resolved flag, outcome
+- **UserPosition** — `["position", market, user]` — a single wallet's cumulative YES/NO stake in one market, and whether they've claimed
 
-2. **Deploy the program locally**
+Anyone can reconstruct the entire market list client-side by filtering the program's accounts by discriminator — which is exactly how the frontend's market list page works.
 
-   ```bash
-   solana config set --url localhost
-   cd anchor
-   anchor build
-   anchor deploy
-   cd ..
-   npm run codama:js   # Regenerate client with local program ID
-   ```
+### Anchor Framework
 
-3. **Switch to localnet** in the app using the cluster selector in the header.
+**Anchor** is Solana's smart contract framework — Solana's equivalent of Foundry/Hardhat for EVM. It handles account validation, serialization, PDA bump derivation, and IDL generation, so the program logic in `lib.rs` stays focused on the actual business rules (bet limits, deadlines, payout math) instead of boilerplate.
 
-## Deploy Your Own Prediction Market
+## Architecture & Components
 
-The included prediction market program is already deployed to devnet. To deploy your own:
-
-### Prerequisites
-
-- [Rust](https://rustup.rs/)
-- [Solana CLI](https://solana.com/docs/intro/installation)
-- [Anchor](https://www.anchor-lang.com/docs/installation)
-
-### Steps
-
-1. **Configure Solana CLI for devnet**
-
-   ```bash
-   solana config set --url devnet
-   ```
-
-2. **Create a wallet (if needed) and fund it**
-
-   ```bash
-   solana-keygen new
-   solana airdrop 2
-   ```
-
-3. **Build and deploy the program**
-
-   ```bash
-   cd anchor
-   anchor build
-   anchor keys sync    # Updates program ID in source
-   anchor build        # Rebuild with new ID
-   anchor deploy
-   cd ..
-   ```
-
-4. **Regenerate the client and restart**
-   ```bash
-   npm run setup   # Rebuilds program and regenerates client
-   npm run dev
-   ```
-
-## Testing
-
-Tests use [LiteSVM](https://github.com/LiteSVM/litesvm), a fast lightweight Solana VM for testing.
-
-```bash
-npm run anchor-build   # Build the program first
-npm run anchor-test    # Run tests
+```
+├── anchor/                                  # Anchor workspace
+│   └── programs/prediction_market/src/
+│       ├── lib.rs                           # create_market, place_bet, resolve_market, claim_winnings
+│       ├── state.rs                         # Market & UserPosition account structs
+│       ├── errors.rs                        # Custom program error codes
+│       └── tests.rs                         # LiteSVM tests
+├── app/                                      # Next.js frontend
+│   ├── page.tsx                             # Market list (home)
+│   ├── create/page.tsx                      # Create market
+│   ├── market/[address]/page.tsx            # Market detail (bet / resolve / claim)
+│   ├── components/markets/                  # Odds bar, bet/resolve/claim panels, market tiles
+│   ├── generated/prediction_market/          # Codama-generated type-safe client
+│   └── lib/
+│       ├── hooks/use-markets.ts             # getProgramAccounts-based market discovery
+│       ├── hooks/use-market.ts              # Single Market account fetch (SWR)
+│       ├── hooks/use-user-position.ts       # UserPosition account fetch (SWR)
+│       ├── market-view.ts                   # Status/odds/countdown derivation
+│       └── wallet/                          # wallet-standard connection layer
+└── codama.json                               # IDL → TypeScript client generation config
 ```
 
-The tests are in `anchor/programs/prediction_market/src/tests.rs` and automatically use the program ID from `declare_id!`.
+- **`lib.rs`** — the four instructions: `create_market`, `place_bet`, `resolve_market`, `claim_winnings`
+- **`state.rs`** — the `Market` and `UserPosition` account layouts
+- **`use-markets.ts`** — discovers every market on-chain via a discriminator `memcmp` filter, no indexer required
+- **`market-card` panels** — one component per market state: open (bet), awaiting (resolve), resolved (claim/claimed/lost)
 
-## Regenerating the Client
+## Libraries & Tooling
 
-If you modify the program, regenerate the TypeScript client:
+This project uses:
 
-```bash
-npm run setup   # Or: npm run anchor-build && npm run codama:js
-```
+- **Anchor**
 
-This uses [Codama](https://github.com/codama-idl/codama) to generate a type-safe client from the Anchor IDL.
+  > Solana's smart contract framework.
 
-## Learn More
+  Used for:
 
-- [Solana Docs](https://solana.com/docs) — core concepts and guides
-- [Anchor Docs](https://www.anchor-lang.com/docs/introduction) — program development framework
-- [Deploying Programs](https://solana.com/docs/programs/deploying) — deployment guide
-- [@solana/kit](https://github.com/anza-xyz/kit) — Solana JavaScript SDK
-- [Codama](https://github.com/codama-idl/codama) — client generation from IDL
+  - Writing and validating the program (`anchor build`)
+  - Running tests (`anchor test`)
+  - Deploying to devnet/mainnet (`anchor deploy`)
+  - Generating the on-chain IDL that drives client codegen
+
+- **Codama**
+
+  > Generates a fully-typed TypeScript client from an Anchor IDL — Solana's equivalent of typechain/wagmi's codegen.
+
+  Used for:
+
+  - Instruction builders (`getCreateMarketInstructionAsync`, `getPlaceBetInstructionAsync`, etc.)
+  - Account decoders (`decodeMarket`, `decodeUserPosition`)
+  - PDA derivation helpers (`findMarketPda`, `findUserPositionPda`)
+
+- **`@solana/kit`**
+
+  > Solana's modern JavaScript/TypeScript SDK (the successor to `@solana/web3.js`).
+
+  Used for:
+
+  - RPC calls, transaction building/signing, `getProgramAccounts` queries
+  - Wallet-standard integration for connecting any Solana wallet extension
+
+- **LiteSVM**
+
+  > A fast, lightweight, in-process Solana VM for testing — no local validator required.
+
+  Used for:
+
+  - Exercising the full create → bet → resolve → claim lifecycle in tests
+  - Validating error conditions (double-claim, early resolution, etc.) without touching a real cluster
+
+- **Next.js + Tailwind CSS v4** — the frontend framework and styling for the market list, detail, and create-market pages.
+
+## How It Works (Market Flow)
+
+1. **Create** — a wallet calls `create_market` with a question and resolution deadline; a `Market` PDA is created, seeded by `[creator, market_id]`
+2. **Bet** — any wallet calls `place_bet` with an amount and a side before the deadline; SOL moves into the market PDA, and the bettor's `UserPosition` PDA is created/updated
+3. **Resolve** — once the deadline passes, only the market's creator can call `resolve_market` with the winning side; this is permanent and can only happen once
+4. **Claim** — winning bettors call `claim_winnings`; the program computes `bet + (bet / winning_pool) × losing_pool` and transfers the payout directly from the market PDA's lamports
+
+The frontend mirrors this exactly: the market detail page renders a different action panel (bet form, waiting-on-creator, resolve buttons, or claim breakdown) depending on which of these four states the on-chain account is currently in.
+
+## Author
+
+**Jason Tong**
+_Blockchain Developer | Smart Contract Engineer_
+
+- **GitHub:** [JasonTongg](https://github.com/JasonTongg)
+- **LinkedIn:** [Jason Tong](https://www.linkedin.com/in/jason-tong-42600319a/)
+- **Focus:** Solana · Anchor · Rust · TypeScript · Next.js · Web3
