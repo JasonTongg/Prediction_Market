@@ -1,13 +1,13 @@
-# Anchor Vault Program
+# Anchor Prediction Market Program
 
-This template includes a simple SOL vault program built with [Anchor](https://www.anchor-lang.com/).
+This template includes a SOL-denominated YES/NO prediction market program built with [Anchor](https://www.anchor-lang.com/).
 
 ## Pre-deployed Program
 
-The vault program is deployed on **devnet** at:
+The prediction market program is deployed on **devnet** at:
 
 ```
-F4jZpgbtTb6RWNWq6v35fUeiAsRJMrDczVPv9U23yXjB
+A7XFHaiEkUqwuUwY4ZAEqJDDjA5Z5EJtvMdrRZTtqeiL
 ```
 
 You can interact with it immediately by connecting your wallet to devnet.
@@ -20,21 +20,21 @@ To deploy your own version of the program:
 
 ```bash
 cd anchor
-solana-keygen new -o target/deploy/vault-keypair.json
+solana-keygen new -o target/deploy/prediction_market-keypair.json
 ```
 
 ### 2. Get the new program ID
 
 ```bash
-solana address -k target/deploy/vault-keypair.json
+solana address -k target/deploy/prediction_market-keypair.json
 ```
 
 ### 3. Update the program ID
 
 Update the program ID in these files:
 
-- `anchor/Anchor.toml` - Update `vault = "..."` under `[programs.devnet]`
-- `anchor/programs/vault/src/lib.rs` - Update `declare_id!("...")`
+- `anchor/Anchor.toml` - Update `prediction_market = "..."` under `[programs.devnet]`
+- `anchor/programs/prediction_market/src/lib.rs` - Update `declare_id!("...")`
 
 ### 4. Build and deploy
 
@@ -56,16 +56,18 @@ cd ..
 npm run codama:js
 ```
 
-This updates the generated client code in `app/generated/vault/` with your new program ID.
+This updates the generated client code in `app/generated/prediction_market/` with your new program ID.
 
 ## Program Overview
 
-The vault program allows users to:
+The prediction market program allows users to:
 
-- **Deposit**: Send SOL to a personal vault PDA (Program Derived Address)
-- **Withdraw**: Retrieve all SOL from your vault
+- **Create Market**: Open a YES/NO market with a question and resolution time, backed by a market PDA (Program Derived Address)
+- **Place Bet**: Bet SOL on YES or NO before the resolution time
+- **Resolve Market**: The market creator sets the winning outcome once the resolution time has passed
+- **Claim Winnings**: Winning bettors claim their original bet plus a share of the losing pool
 
-Each user gets their own vault derived from their wallet address.
+Each market and each user's position in it are derived as PDAs.
 
 ## Testing
 
