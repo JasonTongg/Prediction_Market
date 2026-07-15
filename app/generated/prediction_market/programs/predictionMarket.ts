@@ -28,7 +28,7 @@ import {
 } from "../instructions";
 
 export const PREDICTION_MARKET_PROGRAM_ADDRESS =
-  "A7XFHaiEkUqwuUwY4ZAEqJDDjA5Z5EJtvMdrRZTtqeiL" as Address<"A7XFHaiEkUqwuUwY4ZAEqJDDjA5Z5EJtvMdrRZTtqeiL">;
+  "BWMtf9FY9QrRa2F5HG1xCfogrxtfY4zJewmKhQWuPCuG" as Address<"BWMtf9FY9QrRa2F5HG1xCfogrxtfY4zJewmKhQWuPCuG">;
 
 export enum PredictionMarketAccount {
   Market,
@@ -127,7 +127,7 @@ export function identifyPredictionMarketInstruction(
 }
 
 export type ParsedPredictionMarketInstruction<
-  TProgram extends string = "A7XFHaiEkUqwuUwY4ZAEqJDDjA5Z5EJtvMdrRZTtqeiL",
+  TProgram extends string = "BWMtf9FY9QrRa2F5HG1xCfogrxtfY4zJewmKhQWuPCuG",
 > =
   | ({
       instructionType: PredictionMarketInstruction.ClaimWinnings;

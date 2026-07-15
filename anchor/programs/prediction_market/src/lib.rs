@@ -11,7 +11,7 @@ mod state;
 use errors::MarketError;
 use state::{Market, UserPosition, MAX_QUESTION_LEN};
 
-declare_id!("A7XFHaiEkUqwuUwY4ZAEqJDDjA5Z5EJtvMdrRZTtqeiL");
+declare_id!("BWMtf9FY9QrRa2F5HG1xCfogrxtfY4zJewmKhQWuPCuG");
 
 #[program]
 pub mod prediction_market {

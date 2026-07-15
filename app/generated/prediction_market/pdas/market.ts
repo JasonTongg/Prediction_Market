@@ -25,7 +25,7 @@ export async function findMarketPda(
   config: { programAddress?: Address | undefined } = {},
 ): Promise<ProgramDerivedAddress> {
   const {
-    programAddress = "A7XFHaiEkUqwuUwY4ZAEqJDDjA5Z5EJtvMdrRZTtqeiL" as Address<"A7XFHaiEkUqwuUwY4ZAEqJDDjA5Z5EJtvMdrRZTtqeiL">,
+    programAddress = "BWMtf9FY9QrRa2F5HG1xCfogrxtfY4zJewmKhQWuPCuG" as Address<"BWMtf9FY9QrRa2F5HG1xCfogrxtfY4zJewmKhQWuPCuG">,
   } = config;
   return await getProgramDerivedAddress({
     programAddress,
