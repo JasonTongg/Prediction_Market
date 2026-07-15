@@ -9,7 +9,7 @@ import { lamportsToSolString } from "../../lib/lamports";
 import { parseTransactionError } from "../../lib/errors";
 import { getOutcome } from "../../lib/market-view";
 import { useCluster } from "../cluster-context";
-import { ACCENT, GRAD_BTN } from "../../lib/theme";
+import { ACCENT, GRAD_BTN, GLASS_CARD, GLASS_CARD_SHADOW } from "../../lib/theme";
 import {
   getClaimWinningsInstructionAsync,
   type Market,
@@ -71,7 +71,10 @@ export function ClaimPanel({
 
   if (!hasPosition) {
     return (
-      <div className="rounded-[18px] border border-[rgba(23,23,27,0.09)] bg-[#F1F1EF] p-[22px] text-center">
+      <div
+        className="rounded-[22px] border p-[22px] text-center backdrop-blur-2xl"
+        style={{ background: GLASS_CARD, borderColor: "rgba(255,255,255,0.85)", boxShadow: GLASS_CARD_SHADOW }}
+      >
         <div className="mb-[5px] text-[15px] font-bold text-[#17171B]">
           Resolved {outcome ? "YES" : "NO"}
         </div>
@@ -88,7 +91,10 @@ export function ClaimPanel({
   if (!won) {
     const lost = outcome ? position!.noAmount : position!.yesAmount;
     return (
-      <div className="rounded-[18px] border border-[rgba(23,23,27,0.09)] bg-[#F1F1EF] p-[22px] text-center">
+      <div
+        className="rounded-[22px] border p-[22px] text-center backdrop-blur-2xl"
+        style={{ background: GLASS_CARD, borderColor: "rgba(255,255,255,0.85)", boxShadow: GLASS_CARD_SHADOW }}
+      >
         <div className="mb-[5px] text-[15px] font-bold text-[#6E6E78]">
           Market resolved {outcome ? "YES" : "NO"}
         </div>
@@ -103,7 +109,10 @@ export function ClaimPanel({
 
   if (position!.claimed) {
     return (
-      <div className="rounded-[18px] border border-[rgba(23,23,27,0.09)] bg-[#F1F1EF] p-[22px] text-center">
+      <div
+        className="rounded-[22px] border p-[22px] text-center backdrop-blur-2xl"
+        style={{ background: GLASS_CARD, borderColor: "rgba(255,255,255,0.85)", boxShadow: GLASS_CARD_SHADOW }}
+      >
         <div className="mb-[5px] text-[15px] font-bold text-[#6E6E78]">
           &#10003; Claimed
         </div>

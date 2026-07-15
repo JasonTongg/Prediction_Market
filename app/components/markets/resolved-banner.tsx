@@ -1,5 +1,5 @@
 import { formatDate } from "../../lib/market-view";
-import { YES_DARK_BG, NO_DARK_BG } from "../../lib/theme";
+import { YESPastle, NO, GRAD_HERO } from "../../lib/theme";
 
 export function ResolvedBanner({
   outcome,
@@ -10,24 +10,32 @@ export function ResolvedBanner({
 }) {
   return (
     <div
-      className="mt-4 flex flex-wrap items-center justify-between gap-4 rounded-2xl px-[22px] py-5 text-white"
+      className="relative mt-4 flex flex-wrap items-center justify-between gap-4 overflow-hidden rounded-2xl border px-[22px] py-5"
       style={{
-        background: "linear-gradient(120deg,#1c1233 0%,#0f172a 55%,#0a2a22 100%)",
-        boxShadow: "0 18px 40px -22px rgba(15,23,42,0.8)",
+        background: GRAD_HERO,
+        borderColor: "rgba(255,255,255,0.5)",
+        boxShadow: "0 20px 46px -26px rgba(124,58,237,0.34)",
       }}
     >
-      <div>
-        <div className="text-[11px] uppercase tracking-[0.06em] text-white/50">
+      <div
+        className="pointer-events-none absolute inset-0"
+        style={{
+          background:
+            "radial-gradient(680px 260px at 88% -34%, rgba(255,255,255,0.55), transparent 62%)",
+        }}
+      />
+      <div className="relative">
+        <div className="text-[11px] font-bold uppercase tracking-[0.06em] text-[#17171B]">
           Final verdict
         </div>
         <div className="mt-0.5 text-[26px] font-bold tracking-[-0.02em]">
-          <span style={{ color: outcome ? YES_DARK_BG : NO_DARK_BG }}>
+          <span style={{ color: outcome ? YESPastle : NO }}>
             {outcome ? "YES" : "NO"}
           </span>{" "}
-          <span className="text-[18px] font-medium text-white/45">won</span>
+          <span className="text-[18px] font-bold text-[#17171B]">won</span>
         </div>
       </div>
-      <div className="text-right font-mono text-xs text-white/60">
+      <div className="relative text-right font-mono text-xs font-semibold text-[#17171B]">
         <div>deadline was {formatDate(Number(resolutionTime) * 1000)}</div>
         <div className="mt-0.5">outcome is permanent</div>
       </div>

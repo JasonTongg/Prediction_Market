@@ -38,12 +38,12 @@ export function Providers({ children }: PropsWithChildren) {
             unstyled: true,
             classNames: {
               toast:
-                "flex items-start gap-2.5 rounded-[13px] bg-[#17171B] px-[15px] py-3.5 shadow-[0_14px_40px_-10px_rgba(0,0,0,0.5)] max-w-[360px] w-full",
-              title: "text-[13.5px] font-semibold leading-snug text-white",
+                "flex items-start gap-2.5 rounded-[13px] border border-[rgba(23,23,27,0.1)] bg-white px-[15px] py-3.5 shadow-[0_14px_40px_-10px_rgba(23,23,27,0.18)] max-w-[360px] w-full",
+              title: "text-[13.5px] font-semibold leading-snug text-[#17171B]",
               description:
-                "mt-1 font-mono text-[11px] text-white/60 [&_a]:underline [&_a:hover]:text-white",
+                "mt-1 font-mono text-[11px] text-[#6E6E78] [&_a]:underline [&_a:hover]:text-[#17171B]",
               closeButton:
-                "!left-auto !right-0 !top-0 !translate-x-0 !translate-y-0 !static !bg-transparent !border-0 !text-white/40 hover:!text-white",
+                "!left-auto !right-0 !top-0 !translate-x-0 !translate-y-0 !static !bg-transparent !border-0 !text-[#9A9AA3] hover:!text-[#17171B]",
             },
           }}
         />
