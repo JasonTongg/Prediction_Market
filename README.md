@@ -20,8 +20,8 @@ Open [http://localhost:3000](http://localhost:3000), connect your wallet, and in
 
 - **Wallet connection** via wallet-standard with auto-discovery and dropdown UI
 - **Cluster switching** — devnet, testnet, mainnet, and localnet from the header
-- **Wallet balance** display with airdrop button (devnet/testnet/localnet)
-- **Prediction market program** — create YES/NO markets, bet SOL, resolve, and claim winnings via PDAs
+- **Airdrop** button (devnet/testnet/localnet)
+- **Prediction market program** — browse all on-chain markets, create YES/NO markets, bet SOL, resolve, and claim winnings via PDAs
 - **Toast notifications** with explorer links for every transaction
 - **Error handling** — human-readable messages for common Solana and program errors
 - **Codama-generated client** — type-safe program interactions using `@solana/kit`
@@ -42,13 +42,25 @@ Open [http://localhost:3000](http://localhost:3000), connect your wallet, and in
 ```
 ├── app/
 │   ├── components/
+│   │   ├── header.tsx           # Shared nav: brand, New Market, theme/cluster/wallet
 │   │   ├── cluster-context.tsx  # Cluster state (React context + localStorage)
 │   │   ├── cluster-select.tsx   # Cluster switcher dropdown
 │   │   ├── grid-background.tsx  # Solana-branded decorative grid
 │   │   ├── providers.tsx        # Wallet + theme providers
 │   │   ├── theme-toggle.tsx     # Light/dark mode toggle
-│   │   ├── market-card.tsx      # Prediction market create/bet/resolve/claim UI
-│   │   └── wallet-button.tsx    # Wallet connect/disconnect dropdown
+│   │   ├── wallet-button.tsx    # Wallet connect/disconnect dropdown
+│   │   └── markets/             # Prediction market UI (list, detail, create)
+│   │       ├── status-badge.tsx        # Open / Awaiting / Resolved pill
+│   │       ├── odds-bar.tsx            # YES/NO percentage bar
+│   │       ├── odds-panel.tsx          # Large odds hero (detail page)
+│   │       ├── market-tile.tsx         # Market list grid card
+│   │       ├── resolved-banner.tsx     # Final outcome banner
+│   │       ├── position-panel.tsx      # "Your position" summary
+│   │       ├── bet-panel.tsx           # Bet form (place_bet)
+│   │       ├── connect-to-bet-panel.tsx
+│   │       ├── resolve-panel.tsx       # Creator resolve UI (resolve_market)
+│   │       ├── claim-panel.tsx         # Claim/claimed/lost states (claim_winnings)
+│   │       └── create-market-form.tsx  # Create market UI (create_market)
 │   ├── generated/prediction_market/  # Codama-generated program client
 │   ├── lib/
 │   │   ├── wallet/             # Wallet-standard connection layer
@@ -57,16 +69,21 @@ Open [http://localhost:3000](http://localhost:3000), connect your wallet, and in
 │   │   │   ├── signer.ts       # WalletSession → TransactionSigner
 │   │   │   └── context.tsx     # WalletProvider + useWallet() hook
 │   │   ├── hooks/
-│   │   │   ├── use-balance.ts  # SWR-based balance fetching
-│   │   │   ├── use-market.ts   # SWR-based Market account fetching
-│   │   │   ├── use-user-position.ts     # SWR-based UserPosition account fetching
+│   │   │   ├── use-balance.ts        # SWR-based balance fetching
+│   │   │   ├── use-markets.ts        # getProgramAccounts market discovery (list page)
+│   │   │   ├── use-market.ts         # SWR-based single Market account fetching
+│   │   │   ├── use-user-position.ts  # SWR-based UserPosition account fetching
+│   │   │   ├── use-now.ts            # Ticking clock for countdowns
 │   │   │   └── use-send-transaction.ts  # Transaction send with loading state
+│   │   ├── market-view.ts      # Status/odds/color/countdown derivation helpers
 │   │   ├── cluster.ts          # Cluster endpoints + RPC factory
 │   │   ├── lamports.ts         # SOL/lamports conversion
 │   │   ├── send-transaction.ts # Transaction build + sign + send pipeline
 │   │   ├── errors.ts           # Transaction error parsing
 │   │   └── explorer.ts         # Explorer URL builder + address helpers
-│   └── page.tsx                # Main page
+│   ├── page.tsx                 # Market list (home)
+│   ├── create/page.tsx          # Create market
+│   └── market/[address]/page.tsx  # Market detail (bet/resolve/claim)
 ├── anchor/                     # Anchor workspace
 │   └── programs/prediction_market/  # Prediction market program (Rust)
 └── codama.json                 # Codama client generation config

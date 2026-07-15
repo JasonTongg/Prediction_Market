@@ -1,48 +1,93 @@
 "use client";
 
-import { useState } from "react";
-import { lamports as sol } from "@solana/kit";
+import { useMemo, useState } from "react";
+import { lamports as sol, type Lamports } from "@solana/kit";
 import { toast } from "sonner";
 import { useWallet } from "./lib/wallet/context";
-import { useBalance } from "./lib/hooks/use-balance";
-import { lamportsToSolString } from "./lib/lamports";
 import { useSolanaClient } from "./lib/solana-client-context";
-import { ellipsify } from "./lib/explorer";
-import { MarketCard } from "./components/market-card";
-import { GridBackground } from "./components/grid-background";
-import { ThemeToggle } from "./components/theme-toggle";
-import { ClusterSelect } from "./components/cluster-select";
-import { WalletButton } from "./components/wallet-button";
 import { useCluster } from "./components/cluster-context";
+import { useMarkets } from "./lib/hooks/use-markets";
+import { useNow } from "./lib/hooks/use-now";
+import { getMarketStatus, type MarketStatus } from "./lib/market-view";
+import { lamportsToSolString } from "./lib/lamports";
+import { GRAD_HERO, GRAD_GLASS } from "./lib/theme";
+import { Header } from "./components/header";
+import { MarketTile } from "./components/markets/market-tile";
+
+type Filter = "all" | MarketStatus;
+
+const FILTERS: { key: Filter; label: string }[] = [
+  { key: "all", label: "All" },
+  { key: "open", label: "Open" },
+  { key: "awaiting", label: "Awaiting" },
+  { key: "resolved", label: "Resolved" },
+];
+
+function chipStyle(active: boolean): React.CSSProperties {
+  return active
+    ? { background: GRAD_GLASS, color: "#2a2140", borderColor: "rgba(255,255,255,0.7)" }
+    : { background: "rgba(255,255,255,0.55)", color: "#3E3E46", borderColor: "rgba(23,23,27,0.12)" };
+}
 
 export default function Home() {
-  const { wallet, status } = useWallet();
+  const { wallet, status: walletStatus } = useWallet();
   const { cluster, getExplorerUrl } = useCluster();
   const client = useSolanaClient();
+  const { markets, isLoading } = useMarkets();
+  const now = useNow();
+  const [filter, setFilter] = useState<Filter>("all");
 
-  const address = wallet?.account.address;
-  const balance = useBalance(address);
-  const [copied, setCopied] = useState(false);
+  const walletAddress = wallet?.account.address;
 
-  const handleCopy = async () => {
-    if (!address) return;
-    await navigator.clipboard.writeText(address);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
+  const withStatus = useMemo(
+    () =>
+      markets.map((entry) => ({
+        ...entry,
+        marketStatus: getMarketStatus(entry.market, now),
+      })),
+    [markets, now]
+  );
+
+  const counts = useMemo(() => {
+    const c = { all: withStatus.length, open: 0, awaiting: 0, resolved: 0 };
+    for (const m of withStatus) c[m.marketStatus]++;
+    return c;
+  }, [withStatus]);
+
+  const totalVolume = useMemo(
+    () =>
+      withStatus.reduce(
+        (sum, m) => sum + m.market.yesPool + m.market.noPool,
+        0n
+      ),
+    [withStatus]
+  );
+
+  const filtered =
+    filter === "all"
+      ? withStatus
+      : withStatus.filter((m) => m.marketStatus === filter);
+
+  const sorted = [...filtered].sort((a, b) => {
+    const rank = { open: 0, awaiting: 1, resolved: 2 };
+    if (rank[a.marketStatus] !== rank[b.marketStatus]) {
+      return rank[a.marketStatus] - rank[b.marketStatus];
+    }
+    return Number(b.market.yesPool + b.market.noPool) -
+      Number(a.market.yesPool + a.market.noPool);
+  });
 
   const handleAirdrop = async () => {
-    if (!address) return;
+    if (!walletAddress) return;
     try {
       toast.info("Requesting airdrop...");
-      const sig = await client.airdrop(address, sol(1_000_000_000n));
+      const sig = await client.airdrop(walletAddress, sol(1_000_000_000n));
       toast.success("Airdrop received!", {
         description: sig ? (
           <a
             href={getExplorerUrl(`/tx/${sig}`)}
             target="_blank"
             rel="noopener noreferrer"
-            className="underline"
           >
             View transaction
           </a>
@@ -56,218 +101,170 @@ export default function Home() {
       toast.error(
         isRateLimited
           ? "Devnet faucet rate-limited. Use the web faucet instead."
-          : "Airdrop failed. Try again later.",
-        isRateLimited
-          ? {
-              description: (
-                <a
-                  href="https://faucet.solana.com/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="underline"
-                >
-                  Open faucet.solana.com
-                </a>
-              ),
-            }
-          : undefined
+          : "Airdrop failed. Try again later."
       );
     }
   };
 
   return (
-    <div className="relative min-h-screen bg-background text-foreground">
-      <GridBackground />
+    <div className="flex min-h-screen flex-col">
+      <Header />
 
-      <div className="relative z-10">
-        {/* Header */}
-        <header className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-          <span className="text-sm font-semibold tracking-tight">
-            Solana Starter Kit
-          </span>
-          <div className="flex items-center gap-3">
-            <ThemeToggle />
-            <ClusterSelect />
-            <WalletButton />
+      <main className="mx-auto w-full max-w-[1120px] flex-1 px-7 py-[34px] pb-[90px]">
+        {walletStatus !== "connected" && (
+          <div className="mb-[22px] flex flex-wrap items-center justify-between gap-4 rounded-xl border bg-white px-[18px] py-[13px]" style={{ borderColor: "rgba(23,23,27,0.1)" }}>
+            <p className="text-[13.5px] text-[#3E3E46]">
+              You&apos;re browsing as a guest.{" "}
+              <span className="text-[#6E6E78]">
+                Connect a wallet to place bets or open a market.
+              </span>
+            </p>
           </div>
-        </header>
+        )}
+        {walletStatus === "connected" && cluster !== "mainnet" && (
+          <div className="mb-[22px] flex flex-wrap items-center justify-between gap-4 rounded-xl border bg-white px-[18px] py-[13px]" style={{ borderColor: "rgba(23,23,27,0.1)" }}>
+            <p className="text-[13.5px] text-[#3E3E46]">
+              Need SOL to bet or create a market on {cluster}?
+            </p>
+            <button
+              onClick={handleAirdrop}
+              className="hover-btn-glass h-[34px] whitespace-nowrap rounded-[9px] border border-[rgba(255,255,255,0.65)] px-[15px] text-[13px] font-semibold text-[#2a2140] backdrop-blur-[11px]"
+              style={{ background: GRAD_GLASS }}
+            >
+              Airdrop 1 SOL
+            </button>
+          </div>
+        )}
 
-        <main className="mx-auto max-w-6xl px-6">
-          {/* Hero */}
-          <section className="pt-6 pb-20 md:pt-8 md:pb-32">
-            <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
-              <div>
-                <h1 className="font-black tracking-tight text-foreground">
-                  <span className="block text-6xl md:text-7xl">
-                    Prediction
-                  </span>
-                  <span className="block text-7xl md:text-8xl">Market</span>
-                </h1>
+        {/* Hero */}
+        <div
+          className="relative mb-5 overflow-hidden rounded-[22px] border p-[30px] pb-7"
+          style={{
+            background: GRAD_HERO,
+            borderColor: "rgba(255,255,255,0.5)",
+            boxShadow: "0 20px 46px -26px rgba(124,58,237,0.34)",
+          }}
+        >
+          <div
+            className="pointer-events-none absolute inset-0"
+            style={{
+              background:
+                "radial-gradient(680px 260px at 88% -34%, rgba(255,255,255,0.55), transparent 62%)",
+            }}
+          />
+          <div
+            className="pointer-events-none absolute rounded-full"
+            style={{
+              right: -30,
+              top: "50%",
+              width: 240,
+              height: 240,
+              transform: "translateY(-50%)",
+              background:
+                "radial-gradient(circle at 34% 28%,rgba(255,255,255,0.95),rgba(199,183,253,0.8) 36%,rgba(131,191,247,0.62) 66%,rgba(140,236,181,0.55) 100%)",
+              boxShadow:
+                "0 34px 70px -22px rgba(124,58,237,0.55), inset 0 -22px 44px -12px rgba(80,60,160,0.28), inset 0 14px 34px -8px rgba(255,255,255,0.95)",
+            }}
+          />
+          <div
+            className="pointer-events-none absolute rounded-full"
+            style={{
+              right: 150,
+              top: 26,
+              width: 70,
+              height: 70,
+              background:
+                "radial-gradient(circle at 36% 30%,rgba(255,255,255,0.95),rgba(251,182,206,0.7) 60%,rgba(244,120,150,0.5) 100%)",
+              boxShadow:
+                "0 16px 34px -12px rgba(229,85,106,0.5), inset 0 8px 18px -6px rgba(255,255,255,0.9)",
+            }}
+          />
+
+          <div className="relative">
+            <div className="mb-[11px] text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgba(41,32,74,0.6)]">
+              On-chain prediction markets
+            </div>
+            <h1 className="m-0 text-[36px] font-bold tracking-[-0.035em] text-[#241a3a]">
+              Back your conviction.
+            </h1>
+            <p className="mb-[22px] mt-2.5 max-w-[470px] text-[14.5px] leading-[1.5] text-[rgba(36,26,58,0.72)]">
+              Every binary market lives on-chain. Bet SOL on YES or NO &mdash;
+              winners split the losing pool, proportional to their stake.
+            </p>
+            <div className="flex flex-wrap gap-2.5">
+              <div className="rounded-xl border px-[17px] py-2.5" style={{ background: "rgba(255,255,255,0.55)", borderColor: "rgba(255,255,255,0.7)" }}>
+                <div className="font-mono text-xl font-semibold text-[#241a3a]">
+                  ◎ {lamportsToSolString(totalVolume as Lamports)}
+                </div>
+                <div className="mt-0.5 text-[11px] text-[rgba(36,26,58,0.6)]">
+                  total volume
+                </div>
               </div>
-
-              <div className="flex max-w-2xl flex-col gap-3">
-                <p className="text-base leading-relaxed text-foreground/50">
-                  This program creates a YES/NO prediction market backed by a
-                  Program Derived Address (PDA). Connect your wallet, create a
-                  market, bet SOL on the outcome, and claim your winnings once
-                  it&apos;s resolved.
-                </p>
-                <p className="text-sm leading-relaxed text-foreground/40">
-                  The program is an{" "}
-                  <a
-                    href="https://www.anchor-lang.com/docs/introduction"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="underline underline-offset-2"
-                  >
-                    Anchor
-                  </a>{" "}
-                  program you can deploy to localnet or devnet and modify
-                  yourself. Check the README for setup instructions.
-                </p>
-                <div className="flex flex-wrap gap-4">
-                  <a
-                    href="https://solana.com/docs"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 text-sm font-medium text-foreground/70 underline underline-offset-4 transition-colors hover:text-foreground"
-                  >
-                    Solana docs
-                    <span aria-hidden="true">&rarr;</span>
-                  </a>
-                  <a
-                    href="https://www.anchor-lang.com/docs/introduction"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 text-sm font-medium text-foreground/70 underline underline-offset-4 transition-colors hover:text-foreground"
-                  >
-                    Anchor docs
-                    <span aria-hidden="true">&rarr;</span>
-                  </a>
-                  <a
-                    href="https://faucet.solana.com/"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 text-sm font-medium text-foreground/70 underline underline-offset-4 transition-colors hover:text-foreground"
-                  >
-                    Faucet
-                    <span aria-hidden="true">&rarr;</span>
-                  </a>
+              <div className="rounded-xl border px-[17px] py-2.5" style={{ background: "rgba(255,255,255,0.55)", borderColor: "rgba(255,255,255,0.7)" }}>
+                <div className="font-mono text-xl font-semibold text-[#241a3a]">
+                  {counts.open}
+                </div>
+                <div className="mt-0.5 text-[11px] text-[rgba(36,26,58,0.6)]">
+                  live markets
+                </div>
+              </div>
+              <div className="rounded-xl border px-[17px] py-2.5" style={{ background: "rgba(255,255,255,0.55)", borderColor: "rgba(255,255,255,0.7)" }}>
+                <div className="font-mono text-xl font-semibold text-[#241a3a]">
+                  {counts.resolved}
+                </div>
+                <div className="mt-0.5 text-[11px] text-[rgba(36,26,58,0.6)]">
+                  resolved
                 </div>
               </div>
             </div>
-          </section>
-
-          {/* Template content */}
-          <div className="space-y-10 pb-20">
-            {/* Wallet Balance */}
-            {status === "connected" && address && (
-              <section className="relative w-full overflow-hidden rounded-2xl border border-border-low bg-card px-5 py-5">
-                <div
-                  className="pointer-events-none absolute inset-0 opacity-100 dark:opacity-0"
-                  aria-hidden="true"
-                  style={{
-                    backgroundImage: `
-                      linear-gradient(to right, rgba(0,0,0,0.06) 1px, transparent 1px),
-                      linear-gradient(to bottom, rgba(0,0,0,0.06) 1px, transparent 1px)
-                    `,
-                    backgroundSize: "24px 24px",
-                    mask: "radial-gradient(ellipse 80% 80% at 50% 0%, black, transparent)",
-                    WebkitMask:
-                      "radial-gradient(ellipse 80% 80% at 50% 0%, black, transparent)",
-                  }}
-                />
-                <div
-                  className="pointer-events-none absolute inset-0 opacity-0 dark:opacity-100"
-                  aria-hidden="true"
-                  style={{
-                    backgroundImage: `
-                      linear-gradient(to right, rgba(255,255,255,0.06) 1px, transparent 1px),
-                      linear-gradient(to bottom, rgba(255,255,255,0.06) 1px, transparent 1px)
-                    `,
-                    backgroundSize: "24px 24px",
-                    mask: "radial-gradient(ellipse 80% 80% at 50% 0%, black, transparent)",
-                    WebkitMask:
-                      "radial-gradient(ellipse 80% 80% at 50% 0%, black, transparent)",
-                  }}
-                />
-                <div className="relative flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-cream">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="1.5"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        className="h-4 w-4 text-foreground/70"
-                      >
-                        <path d="M21 12V7H5a2 2 0 0 1 0-4h14v4" />
-                        <path d="M3 5v14a2 2 0 0 0 2 2h16v-5" />
-                        <path d="M18 12a2 2 0 0 0 0 4h4v-4Z" />
-                      </svg>
-                    </div>
-                    <span className="text-sm font-medium">Wallet Balance</span>
-                    <button
-                      onClick={handleCopy}
-                      className="flex cursor-pointer items-center gap-1.5 font-mono text-xs text-muted transition hover:text-foreground"
-                    >
-                      {ellipsify(address, 4)}
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        className="h-3 w-3"
-                      >
-                        {copied ? (
-                          <path d="M20 6 9 17l-5-5" />
-                        ) : (
-                          <>
-                            <rect
-                              width="14"
-                              height="14"
-                              x="8"
-                              y="8"
-                              rx="2"
-                              ry="2"
-                            />
-                            <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
-                          </>
-                        )}
-                      </svg>
-                    </button>
-                  </div>
-                  {cluster !== "mainnet" && (
-                    <button
-                      onClick={handleAirdrop}
-                      className="cursor-pointer rounded-lg border border-border-low px-3 py-1.5 text-xs font-medium transition hover:bg-cream"
-                    >
-                      Airdrop
-                    </button>
-                  )}
-                </div>
-                <p className="relative mt-4 font-mono text-4xl font-bold tabular-nums tracking-tight">
-                  {balance.lamports != null
-                    ? lamportsToSolString(balance.lamports)
-                    : "\u2014"}
-                  <span className="ml-1.5 text-lg font-normal text-muted">
-                    SOL
-                  </span>
-                </p>
-              </section>
-            )}
-
-            {/* Prediction Market Program Section */}
-            <MarketCard />
           </div>
-        </main>
-      </div>
+        </div>
+
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-4">
+          <div className="text-[19px] font-bold tracking-[-0.02em] text-[#17171B]">
+            All markets
+          </div>
+          <div className="flex flex-wrap gap-[7px]">
+            {FILTERS.map((f) => (
+              <button
+                key={f.key}
+                onClick={() => setFilter(f.key)}
+                className="hover-chip h-9 rounded-[9px] border px-3.5 text-[13px] font-semibold backdrop-blur-sm"
+                style={chipStyle(filter === f.key)}
+              >
+                {f.label}{" "}
+                <span className="font-mono text-[11px] opacity-70">
+                  {counts[f.key]}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {isLoading && sorted.length === 0 && (
+          <div className="rounded-2xl border border-[rgba(23,23,27,0.1)] bg-white p-10 text-center text-sm text-[#6E6E78]">
+            Loading markets&hellip;
+          </div>
+        )}
+
+        {!isLoading && sorted.length === 0 && (
+          <div className="rounded-2xl border border-[rgba(23,23,27,0.1)] bg-white p-10 text-center text-sm text-[#6E6E78]">
+            No markets{filter !== "all" ? ` in ${filter}` : ""} yet.
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 gap-4 [grid-template-columns:repeat(auto-fill,minmax(330px,1fr))]">
+          {sorted.map(({ address, market }) => (
+            <MarketTile
+              key={address}
+              address={address}
+              market={market}
+              now={now}
+              walletAddress={walletAddress}
+            />
+          ))}
+        </div>
+      </main>
     </div>
   );
 }

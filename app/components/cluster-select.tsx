@@ -22,10 +22,10 @@ export function ClusterSelect() {
     <div className="relative" ref={ref}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex cursor-pointer items-center gap-2 rounded-lg border border-border-low bg-card px-3 py-2 text-xs font-medium transition hover:bg-cream"
+        className="hover-chip flex h-[30px] cursor-pointer items-center gap-1.5 rounded-lg border border-[rgba(23,23,27,0.12)] px-2.5 font-mono text-[11px] text-[#6E6E78]"
       >
         <span
-          className="h-2 w-2 rounded-full"
+          className="h-1.5 w-1.5 rounded-full"
           style={{
             backgroundColor:
               cluster === "mainnet"

@@ -6,6 +6,7 @@ import { useBalance } from "../lib/hooks/use-balance";
 import { lamportsToSolString } from "../lib/lamports";
 import { ellipsify } from "../lib/explorer";
 import { useCluster } from "./cluster-context";
+import { GRAD_GLASS } from "../lib/theme";
 
 export function WalletButton() {
   const { connectors, connect, disconnect, wallet, status, error } =
@@ -44,13 +45,17 @@ export function WalletButton() {
       <div className="relative" ref={ref}>
         <button
           onClick={() => (isOpen ? close() : open())}
-          className="cursor-pointer rounded-lg bg-primary px-4 py-2 text-xs font-medium text-primary-foreground shadow-xs transition hover:bg-primary/90"
+          className="hover-btn-glass h-10 rounded-[10px] border border-[rgba(255,255,255,0.65)] px-[18px] text-[13.5px] font-semibold text-[#2a2140] backdrop-blur-[11px]"
+          style={{
+            background: GRAD_GLASS,
+            boxShadow: "0 8px 22px -12px rgba(124,58,237,0.4)",
+          }}
         >
-          Connect Wallet
+          Connect wallet
         </button>
 
         {isOpen && (
-          <div className="absolute right-0 top-full z-50 mt-2 w-64 rounded-xl border border-border-low bg-card p-3 shadow-lg">
+          <div className="absolute right-0 top-full z-50 mt-2 w-64 rounded-xl border border-[rgba(23,23,27,0.12)] bg-white p-3 shadow-lg">
             <p className="mb-2 text-xs font-medium text-muted">
               Choose a wallet
             </p>
@@ -98,14 +103,14 @@ export function WalletButton() {
     <div className="relative" ref={ref}>
       <button
         onClick={() => (isOpen ? close() : open())}
-        className="flex cursor-pointer items-center gap-2 rounded-lg border border-border-low bg-card px-3 py-2 text-xs font-medium transition hover:bg-cream"
+        className="flex h-10 items-center gap-2 rounded-[10px] border border-[rgba(23,23,27,0.14)] bg-white px-[13px] font-mono text-[13px] font-semibold text-[#17171B]"
       >
-        <span className="h-2 w-2 rounded-full bg-green-500" />
-        <span className="font-mono">{ellipsify(address!, 4)}</span>
+        <span className="h-[7px] w-[7px] rounded-full bg-[#2FA36B]" />
+        {ellipsify(address!, 4)}
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 top-full z-50 mt-2 w-72 rounded-xl border border-border-low bg-card p-4 shadow-lg">
+        <div className="absolute right-0 top-full z-50 mt-2 w-72 rounded-xl border border-[rgba(23,23,27,0.12)] bg-white p-4 shadow-lg">
           <div className="mb-3">
             <p className="text-xs text-muted">Balance</p>
             <p className="text-lg font-bold tabular-nums">
